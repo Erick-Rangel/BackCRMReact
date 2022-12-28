@@ -7,54 +7,138 @@ const bcrypt = require('bcryptjs');
 const { registerValidation, loginValidation } = require('./validation');
 const verify = require('./verifyToken');
 const { v4: uuidv4 } = require("uuid");
+const sharp = require('sharp');
+const { DB_SERVER, PORT } = require('../db/conection');
 
-exports.register = async (req, res) => {
-    try{
-    const { Name, Users, Email, LastName, Password,  Rol } = req.body
-    let { Admin } = req.body
-    const Id = uuidv4()
-    // Validate data before making a user
-    const { error } = registerValidation({ Name, Users, Email, LastName, Password, Rol });
-    if (error) return res.status(400).send(error.details[0].message);
-    const connection = await sql.connect(config);
-    // Checking if the user is already in the database
-    const emailExist = await connection.query(`SELECT * FROM dbo.Tbl_User WHERE Email = '${Email}'`);
-    if (emailExist.recordset.length > 0) return res.status(400).send('El email ya esta registrado');
- //token
- const token = jwt.sign({ id: Id }, process.env.TOKEN_SECRET);
-    // Hash passwords
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(Password, salt);
 
-    let rol = Number(Rol)
+exports.register =  async (req, res) => {
+    try {
+         //recibir imagen y guardarla para despues incertarla junto con el formulario
 
-    if(Admin === true){
-        Admin = 1
-    }else{
-        Admin = 0
-    }
+        
+        const { Name, Users,
+            Email,
+            LastName,
+            Password,
+            Rol,
+            Currency,
+            Symbol,
+            Agrupation,
+            SeparateDecimal,
+            SeparaterGroups,
+            CurrencySymbolPlace,
+            DecimalsCamps,
+            Position,
+            Fax,
+            Departmen,
+            Email2, TelOffice, TelMovil, TelHome,
+            InformTo, TelDirection, Firm, Documents,
+            ClientEmailInter, Lenguage, CRMPhone,
+            ViewRegisterDefect, Direction, Country,
+            Municipality, PostalCode, State,Image } = req.body
+        let { Admin } = req.body
+        const Id = uuidv4()
+        // Validate data before making a user
+        const { error } = registerValidation({ Name, Users, Email, LastName, Password, Rol });
+        if (error) return res.status(400).send(error.details[0].message);
+        const connection = await sql.connect(config);
+        // Checking if the user is already in the database
+        const emailExist = await connection.query(`SELECT * FROM dbo.Tbl_User WHERE Email = '${Email}'`);
+        if (emailExist.recordset.length > 0) return res.status(400).send('El email ya esta registrado');
+        //token
+        const token = jwt.sign({ id: Id }, process.env.TOKEN_SECRET);
+        // Hash passwords
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(Password, salt);
 
-    // Create a new user
-    const user = await connection.query(`INSERT INTO dbo.Tbl_User (
-        Name
+        let rol = Number(Rol)
+
+        if (Admin === true) {
+            Admin = 1
+        } else {
+            Admin = 0
+        }   
+
+        // Create a new user
+        console.log(req.body)
+        const user = await connection.query(`INSERT INTO dbo.Tbl_User (
+         Name
         , Users
         , Email
         , LastName
         , Password
         , Admin
         , id_rol
-        , Id) VALUES (
-        '${Name}', 
+        , Id
+        , Currency
+        , Symbol
+        , Agrupation
+        , SeparateDecimal
+        , SeparaterGroups
+        , CurrencySymbolPlace
+        , DecimalsCamps
+        , Position
+        , Fax
+        , Departmen
+        , Email2
+        , TelOffice
+        , TelMovil
+        , TelHome
+        , InformTo
+        , TelDirection
+        , Firm
+        , Documents
+        , ClientEmailInter
+        , Lenguage
+        , CRMPhone
+        , ViewRegisterDefect
+        , Direction
+        , Country
+        , Municipality
+        , PostalCode
+        , State
+        , Image
+        ) VALUES (
+        '${Name}',
         '${Users}',
         '${Email}',
         '${LastName}',
         '${hashedPassword}',
         '${Admin}',
         '${rol}',
-        '${Id}' )`)
-        res.header('auth-token', token).send({ token, Name,LastName,Users,Id,Admin,rol, ok: true });
+        '${Id}',
+        '${Currency}',
+        '${Symbol}',
+        '${Agrupation}',
+        '${SeparateDecimal}',
+        '${SeparaterGroups}',
+        '${CurrencySymbolPlace}',
+        '${DecimalsCamps}',
+        '${Position}',
+        '${Fax}',
+        '${Departmen}',
+        '${Email2}',
+        '${TelOffice}',
+        '${TelMovil}',
+        '${TelHome}',
+        '${InformTo}',
+        '${TelDirection}',
+        '${Firm}',
+        '${Documents}',
+        '${ClientEmailInter}',
+        '${Lenguage}',
+        '${CRMPhone}',
+        '${ViewRegisterDefect}',
+        '${Direction}',
+        '${Country}',
+        '${Municipality}',
+        '${PostalCode}',
+        '${State}',
+        '${Image}'
+        )`);
+    res.header('auth-token', token).send({ token, Name, LastName, Users, Id, Admin, rol, ok: true, Image});
     }
-    catch(err){
+    catch (err) {
         console.log(err)
     }
 }
@@ -79,7 +163,6 @@ exports.login = async (req, res) => {
     const users = user.recordset[0]
     const token = jwt.sign({ id: user.recordset[0].Id }, process.env.TOKEN_SECRET);
     res.header('auth-token', token).send({ token, users, ok: true });
-
 }
 
 exports.users = verify, async (req, res) => {
@@ -94,8 +177,6 @@ exports.users = verify, async (req, res) => {
     res.send(usersWithoutPassword);
 }
 
-
-/* 
 exports.user = verify, async (req, res) => {
     const user = await connection.query(`SELECT * FROM dbo.Tbl_User WHERE Id = '${req.params.id}'`);
     res.send(user.recordset);
@@ -124,4 +205,15 @@ exports.changePassword = async (req, res) => {
     const user = await connection.query(`UPDATE dbo.Tbl_User SET Password = '${hashedPassword}' WHERE Id = '${req.params.id}'`);
     res.send(user);
 }
- */
+
+
+exports.uploadimage = async (req,res)=>{
+    const imageUrl = `${DB_SERVER}:${PORT}/uploads/${req.file.originalname}`;
+    res.send(imageUrl);
+}
+
+exports.getRole = async (req, res) => {
+    const connection = await sql.connect(config);
+    const rol = await connection.query(`SELECT * FROM dbo.C_Roles`);
+    res.send(rol.recordset);
+}
