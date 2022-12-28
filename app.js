@@ -1,17 +1,21 @@
 const express = require('express');
-const sql = require('mssql');
-const app = express()   
 const cors = require('cors');
 const ve = require('./db/conection');
 const register = require('./routes/authRoutes')
-const catalog = require('./routes/catalogRoutes')
+const catalog = require('./routes/catalogRoutes');
+const bodyParser = require('body-parser');
+const serveStatic = require('serve-static');
+const path = require('path');
 
+const app = express()   
+
+app.use(express.static('public'))
 
 //midlewares
+app.use(bodyParser.urlencoded({extended: false}))
 app.use(express.json());
 app.use(cors());
 app.use(register,catalog)
-
 
 //
 // Start the server
