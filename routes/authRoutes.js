@@ -24,6 +24,10 @@ router.get('/users',authController.users)
 
 router.get('/user/:id',authController.user)
 
+router.put('/changepassword', authController.changePassword)
+
+router.put('/changeuser', authController.changeUsers)
+
 router.get('/roles',authController.getRole)
 
 router.post('/uploadimage', upload.single('image'),authController.uploadimage)

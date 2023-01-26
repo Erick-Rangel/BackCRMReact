@@ -7,15 +7,10 @@ const bcrypt = require('bcryptjs');
 const { registerValidation, loginValidation } = require('./validation');
 const verify = require('./verifyToken');
 const { v4: uuidv4 } = require("uuid");
-const sharp = require('sharp');
 const { DB_SERVER, PORT } = require('../db/conection');
 
-
-exports.register =  async (req, res) => {
+exports.register = async (req, res) => {
     try {
-         //recibir imagen y guardarla para despues incertarla junto con el formulario
-
-        
         const { Name, Users,
             Email,
             LastName,
@@ -35,7 +30,7 @@ exports.register =  async (req, res) => {
             InformTo, TelDirection, Firm, Documents,
             ClientEmailInter, Lenguage, CRMPhone,
             ViewRegisterDefect, Direction, Country,
-            Municipality, PostalCode, State,Image } = req.body
+            Municipality, PostalCode, State, Image } = req.body
         let { Admin } = req.body
         const Id = uuidv4()
         // Validate data before making a user
@@ -43,100 +38,54 @@ exports.register =  async (req, res) => {
         if (error) return res.status(400).send(error.details[0].message);
         const connection = await sql.connect(config);
         // Checking if the user is already in the database
-        const emailExist = await connection.query(`SELECT * FROM dbo.Tbl_User WHERE Email = '${Email}'`);
+        const emailExist = await connection.request().input('Correo', Email).execute('SP_validarcorreo')
         if (emailExist.recordset.length > 0) return res.status(400).send('El email ya esta registrado');
         //token
         const token = jwt.sign({ id: Id }, process.env.TOKEN_SECRET);
         // Hash passwords
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(Password, salt);
-
-        let rol = Number(Rol)
-
-        if (Admin === true) {
-            Admin = 1
-        } else {
-            Admin = 0
-        }   
-
         // Create a new user
-        console.log(req.body)
-        const user = await connection.query(`INSERT INTO dbo.Tbl_User (
-         Name
-        , Users
-        , Email
-        , LastName
-        , Password
-        , Admin
-        , id_rol
-        , Id
-        , Currency
-        , Symbol
-        , Agrupation
-        , SeparateDecimal
-        , SeparaterGroups
-        , CurrencySymbolPlace
-        , DecimalsCamps
-        , Position
-        , Fax
-        , Departmen
-        , Email2
-        , TelOffice
-        , TelMovil
-        , TelHome
-        , InformTo
-        , TelDirection
-        , Firm
-        , Documents
-        , ClientEmailInter
-        , Lenguage
-        , CRMPhone
-        , ViewRegisterDefect
-        , Direction
-        , Country
-        , Municipality
-        , PostalCode
-        , State
-        , Image
-        ) VALUES (
-        '${Name}',
-        '${Users}',
-        '${Email}',
-        '${LastName}',
-        '${hashedPassword}',
-        '${Admin}',
-        '${rol}',
-        '${Id}',
-        '${Currency}',
-        '${Symbol}',
-        '${Agrupation}',
-        '${SeparateDecimal}',
-        '${SeparaterGroups}',
-        '${CurrencySymbolPlace}',
-        '${DecimalsCamps}',
-        '${Position}',
-        '${Fax}',
-        '${Departmen}',
-        '${Email2}',
-        '${TelOffice}',
-        '${TelMovil}',
-        '${TelHome}',
-        '${InformTo}',
-        '${TelDirection}',
-        '${Firm}',
-        '${Documents}',
-        '${ClientEmailInter}',
-        '${Lenguage}',
-        '${CRMPhone}',
-        '${ViewRegisterDefect}',
-        '${Direction}',
-        '${Country}',
-        '${Municipality}',
-        '${PostalCode}',
-        '${State}',
-        '${Image}'
-        )`);
-    res.header('auth-token', token).send({ token, Name, LastName, Users, Id, Admin, rol, ok: true, Image});
+        console.log(connection)
+        const user = await connection.request()
+            .input('id', Id)
+            .input('Nombre', Name)
+            .input('Usuario', Users)
+            .input('Correo', Email)
+            .input('Apellido', LastName)
+            .input('Contraseña', hashedPassword)
+            .input('id_rol', Rol)
+            .input('Divisas', Currency)
+            .input('Simbolo', Symbol)
+            .input('Agrupacion', Agrupation)
+            .input('SeparadorDecimales', SeparateDecimal)
+            .input('SeparadorGrupos', SeparaterGroups)
+            .input('Simbolodeladivisa', CurrencySymbolPlace)
+            .input('DecimalesCampos', DecimalsCamps)
+            .input('Posiciones', Position)
+            .input('Fax', Fax)
+            .input('Departamentos', Departmen)
+            .input('Correo2', Email2)
+            .input('TelefonoOficina', TelOffice)
+            .input('TelefonoMovil', TelMovil)
+            .input('TelefonoCasa', TelHome)
+            .input('Informa', InformTo)
+            .input('Telefonodirecto', TelDirection)
+            .input('Firma', Firm)
+            .input('Documentos', Documents)
+            .input('CorreoInternos', ClientEmailInter)
+            .input('Lenguaje', Lenguage)
+            .input('ExtencionCrm', CRMPhone)
+            .input('VistaDefecto', ViewRegisterDefect)
+            .input('Direccion', Direction)
+            .input('Ciudad', Country)
+            .input('Municipio', Municipality)
+            .input('CodigoPostal', PostalCode)
+            .input('Estado', State)
+            .input('Admin', Admin)
+            .input('Imagen', Image)
+            .execute('SP_nombreyquehace')
+        res.header('auth-token', token).send({ ok: true });
     }
     catch (err) {
         console.log(err)
@@ -145,7 +94,6 @@ exports.register =  async (req, res) => {
 
 exports.login = async (req, res) => {
     const { Email, Password } = req.body;
-    console.log(Email, Password)
     const ok = false
     const connection = await sql.connect(config);
     // Validate data before making a user
@@ -176,16 +124,19 @@ exports.users = verify, async (req, res) => {
     console.log(usersWithoutPassword)
     res.send(usersWithoutPassword);
 }
-
 exports.user = verify, async (req, res) => {
-    const user = await connection.query(`SELECT * FROM dbo.Tbl_User WHERE Id = '${req.params.id}'`);
+    const connection = await sql.connect(config);
+    const id = req.params.id
+    console.log(req.params)
+    const user = await connection.request().input('id', id).execute('SP_buscarporid');
+    console.log(user.recordset)
     res.send(user.recordset);
 }
 
 exports.updateUser = verify, async (req, res) => {
     const { Name, Users, Email, LastName, Password, Admin, Rol } = req.body
     const { error } = registerValidation({ Name, Users, Email, LastName, Password, Rol });
-    console.log(error,"Error");
+    console.log(error, "Error");
     if (error) return res.status(400).send(error.details[0].message);
     const user = await connection.query(`UPDATE dbo.Tbl_User SET Name = '${Name}', Users = '${Users}', Email = '${Email}', LastName = '${LastName}', Password = '${Password}', Admin = '${Admin}', Rol = '${Rol}' WHERE Id = '${req.params.id}'`);
     res.send(user);
@@ -197,17 +148,24 @@ exports.deleteUser = verify, async (req, res) => {
 }
 
 exports.changePassword = async (req, res) => {
-    const { Password } = req.body;
-    const { error } = loginValidation(req.body);
-    if (error) return res.status(400).send(error.details[0].message);
+    const connection = await sql.connect(config);
+    const { password,id } = req.body;
     const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(Password, salt);
-    const user = await connection.query(`UPDATE dbo.Tbl_User SET Password = '${hashedPassword}' WHERE Id = '${req.params.id}'`);
-    res.send(user);
+    const hashedPassword = await bcrypt.hash(password, salt);
+    const user = await connection.request().input('id', id).input('password', hashedPassword).execute('SP_CambiarContraseña');
+    res.send({message:'La contraseña se ha cambiado correctamente'});
 }
 
+exports.changeUsers = async (req,res) =>{
+    const connection = await sql.connect(config);
+    const {id,usuario, password} = req.body;
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+    const user = await connection.request().input('id',id).input('user',usuario).input('password',hashedPassword).execute('SP_CambiarUsuario');
+    res.send({message:'El usuario se ha cambiado correctamente'});
+}
 
-exports.uploadimage = async (req,res)=>{
+exports.uploadimage = async (req, res) => {
     const imageUrl = `${DB_SERVER}:${PORT}/uploads/${req.file.originalname}`;
     res.send(imageUrl);
 }
