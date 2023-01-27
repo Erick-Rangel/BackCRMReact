@@ -141,7 +141,7 @@ exports.updateUser = verify, async (req, res) => {
     const user = await connection.query(`UPDATE dbo.Tbl_User SET Name = '${Name}', Users = '${Users}', Email = '${Email}', LastName = '${LastName}', Password = '${Password}', Admin = '${Admin}', Rol = '${Rol}' WHERE Id = '${req.params.id}'`);
     res.send(user);
 }
-
+ 
 exports.deleteUser = verify, async (req, res) => {
     const user = await connection.query(`DELETE FROM dbo.Tbl_User WHERE Id = '${req.params.id}'`);
     res.send(user);
